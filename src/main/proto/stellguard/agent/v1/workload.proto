@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package stellguard.agent.v1;
+
+option go_package = "github.com/stellhub/stellguard-agent/proto/stellguard/agent/v1;agentv1";
+option java_multiple_files = true;
+option java_outer_classname = "WorkloadProto";
+option java_package = "io.github.stellhub.stellguard.proto.agent.v1";
+
+// WorkloadCredentialService 是 stellguard-agent 暴露给同机 workload 的本地凭据 API。
+//
+// 该服务只应通过 Unix Domain Socket 暴露，不应监听 TCP。agent 会在服务端侧基于
+// UDS peer credential 校验调用方 UID/GID，并将当前已经提升为 current 的 workload
+// 凭据、trust bundle 和运行状态提供给本机业务进程。
+service WorkloadCredentialService {
+  // FetchWorkloadCredential 读取当前已经提升为 current 的 workload 凭据。
+  rpc FetchWorkloadCredential(FetchWorkloadCredentialRequest) returns (WorkloadCredential);
+
+  // WatchWorkloadCredential 订阅当前凭据以及后续凭据更新。
+  rpc WatchWorkloadCredential(WatchWorkloadCredentialRequest) returns (stream WorkloadCredential);
+
+  // GetTrustBundle 只读取本地缓存的 trust bundle。
+  rpc GetTrustBundle(GetTrustBundleRequest) returns (TrustBundle);
+
+  // GetAgentStatus 查询 agent 本地运行状态和当前凭据观察版本。
+  rpc GetAgentStatus(GetAgentStatusRequest) returns (AgentStatus);
+}
+
+message FetchWorkloadCredentialRequest {
+  string audience = 1;
+  optional bool include_private_key = 2;
+}
+
+message WatchWorkloadCredentialRequest {
+  optional bool send_current = 1;
+  string audience = 2;
+  optional bool include_private_key = 3;
+}
+
+message GetTrustBundleRequest {
+  string trust_domain = 1;
+}
+
+message GetAgentStatusRequest {}
+
+message WorkloadCredential {
+  string slot = 1;
+  string certificate_pem = 2;
+  string private_key_pem = 3;
+  string certificate_chain_pem = 4;
+  string trust_bundle_pem = 5;
+  string trust_domain = 6;
+  string agent_id = 7;
+  string node_id = 8;
+  string identity_id = 9;
+  string session_id = 10;
+  string lease_id = 11;
+  string renewal_group_id = 12;
+  string spiffe_id = 13;
+  repeated string dns_names = 14;
+  string serial_number = 15;
+  string key_version_id = 16;
+  string key_version_label = 17;
+  string bundle_id = 18;
+  int64 bundle_version = 19;
+  string certificate_sha256 = 20;
+  string not_before = 21;
+  string not_after = 22;
+  string renew_after = 23;
+  string updated_at = 24;
+}
+
+message TrustBundle {
+  string trust_domain = 1;
+  string bundle_id = 2;
+  int64 bundle_version = 3;
+  string key_version_id = 4;
+  string bundle_pem = 5;
+  string updated_at = 6;
+}
+
+message AgentStatus {
+  string state = 1;
+  string message = 2;
+  string agent_id = 3;
+  string trust_domain = 4;
+  string session_id = 5;
+  string node_id = 6;
+  string last_renewal_at = 7;
+  string last_error = 8;
+  string uds_path = 9;
+  string started_at = 10;
+  int64 bundle_version = 11;
+  string key_version_id = 12;
+}
